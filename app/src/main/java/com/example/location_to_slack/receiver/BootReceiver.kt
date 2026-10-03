@@ -37,17 +37,9 @@ class BootReceiver : BroadcastReceiver() {
                         pending.finish()
                     } else {
                         val geofenceManager = GeofenceManager(context)
-                        geofenceManager.registerGeofences(
-                            activeCheckpoints,
-                            onSuccess = {
-                                Log.d(TAG, "Geofences reregistered successfully")
-                                pending.finish()
-                            },
-                            onFailure = { e ->
-                                Log.e(TAG, "Failed to reregister geofences", e)
-                                pending.finish()
-                            }
-                        )
+                        geofenceManager.registerGeofences(activeCheckpoints)
+                        Log.d(TAG, "Geofences reregistered successfully")
+                        pending.finish()
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error restarting geofence monitoring", e)

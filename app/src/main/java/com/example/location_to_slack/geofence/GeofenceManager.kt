@@ -20,21 +20,20 @@ class GeofenceManager(private val context: Context) {
     private val geofencingClient: GeofencingClient = LocationServices.getGeofencingClient(context)
 
     // ジオフェンスイベントを受け取る PendingIntent
-    val geofencePendingIntent: PendingIntent by lazy {
-        val intent = Intent(context, GeofenceBroadcastReceiver::class.java)
-        val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
-        PendingIntent.getBroadcast(context, 0, intent, flags)
+    private val geofencePendingIntent: PendingIntent by lazy {
+        PendingIntent.getBroadcast(
+            context,
+            0,
+            Intent(context, GeofenceBroadcastReceiver::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        )
     }
 
     /**
      * チェックポイントリストからジオフェンスを登録する
      */
     @SuppressLint("MissingPermission")
-    fun registerGeofences(
-        checkpoints: List<Checkpoint>,
-        onSuccess: () -> Unit = {},
-        onFailure: (Exception) -> Unit = {}
-    ) {
+    fun registerGeofences(checkpoints: List<Checkpoint>) {
         if (checkpoints.isEmpty()) {
             Log.d(TAG, "No checkpoints to register.")
             removeGeofences()
@@ -45,47 +44,32 @@ class GeofenceManager(private val context: Context) {
             Geofence.Builder()
                 // requestId として checkpoint.id を文字列化したものを設定
                 .setRequestId(checkpoint.id.toString())
-                .setCircularRegion(
-                    checkpoint.latitude,
-                    checkpoint.longitude,
-                    checkpoint.radius
-                )
+                .setCircularRegion(checkpoint.latitude, checkpoint.longitude, checkpoint.radius)
                 .setExpirationDuration(Geofence.NEVER_EXPIRE)
                 // 進入 (ENTER) と 退出 (EXIT) の両方を監視（再通知制御・状態管理用）
                 .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER or Geofence.GEOFENCE_TRANSITION_EXIT)
                 .build()
         }
 
-        val request = GeofencingRequest.Builder().apply {
-            setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
-            addGeofences(geofenceList)
-        }.build()
+        val request = GeofencingRequest.Builder()
+            .setInitialTrigger(GeofencingRequest.INITIAL_TRIGGER_ENTER)
+            .addGeofences(geofenceList)
+            .build()
 
         // 既存のジオフェンスをクリアしてから新しく登録
         geofencingClient.removeGeofences(geofencePendingIntent).addOnCompleteListener {
             geofencingClient.addGeofences(request, geofencePendingIntent)
-                .addOnSuccessListener {
-                    Log.d(TAG, "Successfully registered ${geofenceList.size} geofences.")
-                    onSuccess()
-                }
-                .addOnFailureListener { e ->
-                    Log.e(TAG, "Failed to register geofences", e)
-                    onFailure(e)
-                }
+                .addOnSuccessListener { Log.d(TAG, "Successfully registered ${geofenceList.size} geofences.") }
+                .addOnFailureListener { e -> Log.e(TAG, "Failed to register geofences", e) }
         }
     }
 
     /**
      * 登録中のジオフェンスをすべて解除する
      */
-    fun removeGeofences(
-        onComplete: () -> Unit = {}
-    ) {
+    fun removeGeofences() {
         geofencingClient.removeGeofences(geofencePendingIntent)
-            .addOnCompleteListener {
-                Log.d(TAG, "Geofences removed.")
-                onComplete()
-            }
+            .addOnCompleteListener { Log.d(TAG, "Geofences removed.") }
     }
 
     companion object {
