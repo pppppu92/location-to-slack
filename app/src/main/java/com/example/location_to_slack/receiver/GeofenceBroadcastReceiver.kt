@@ -37,9 +37,7 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
         val pendingResult = goAsync()
         CoroutineScope(Dispatchers.IO).launch {
             try {
-                val database = AppDatabase.getDatabase(context)
-                val repository = CheckpointRepository(database.checkpointDao())
-                val slackNotifier = SlackNotifier.getInstance(context)
+                val repository = CheckpointRepository(AppDatabase.getDatabase(context).checkpointDao())
 
                 for (geofence in triggeringGeofences) {
                     val checkpointId = geofence.requestId.toLongOrNull() ?: continue
@@ -48,11 +46,11 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
                     when (transitionType) {
                         Geofence.GEOFENCE_TRANSITION_ENTER -> {
                             Log.d(TAG, "Entered checkpoint: ${checkpoint.name}")
-                            slackNotifier.notifyCheckpointEntered(checkpoint)
+                            SlackNotifier.notifyCheckpointEntered(checkpoint)
                         }
                         Geofence.GEOFENCE_TRANSITION_EXIT -> {
                             Log.d(TAG, "Exited checkpoint: ${checkpoint.name}")
-                            slackNotifier.onCheckpointExited(checkpoint)
+                            SlackNotifier.onCheckpointExited(checkpoint)
                         }
                     }
                 }

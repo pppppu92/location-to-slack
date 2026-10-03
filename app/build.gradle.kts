@@ -1,5 +1,4 @@
 import java.util.Properties
-import java.io.FileInputStream
 
 plugins {
     alias(libs.plugins.android.application)
@@ -11,7 +10,7 @@ plugins {
 val localProperties = Properties().apply {
     val localPropertiesFile = rootProject.file("local.properties")
     if (localPropertiesFile.exists()) {
-        load(FileInputStream(localPropertiesFile))
+        localPropertiesFile.inputStream().use { load(it) }
     }
 }
 val slackWebhookUrl: String = localProperties.getProperty("SLACK_WEBHOOK_URL") ?: ""
@@ -88,7 +87,6 @@ dependencies {
 
     // OkHttp (Slack Webhook POST)
     implementation(libs.okhttp)
-    implementation(libs.okhttp.logging)
 
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)

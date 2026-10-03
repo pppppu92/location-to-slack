@@ -9,29 +9,13 @@ class CheckpointRepository(private val checkpointDao: CheckpointDao) {
 
     val allCheckpoints: Flow<List<Checkpoint>> = checkpointDao.getAllCheckpoints()
 
-    val activeCheckpoints: Flow<List<Checkpoint>> = checkpointDao.getActiveCheckpoints()
+    suspend fun getActiveCheckpointsList() = checkpointDao.getActiveCheckpointsList()
 
-    suspend fun getActiveCheckpointsList(): List<Checkpoint> {
-        return checkpointDao.getActiveCheckpointsList()
-    }
+    suspend fun getCheckpointById(id: Long) = checkpointDao.getCheckpointById(id)
 
-    suspend fun getCheckpointById(id: Long): Checkpoint? {
-        return checkpointDao.getCheckpointById(id)
-    }
+    suspend fun insert(checkpoint: Checkpoint) = checkpointDao.insertCheckpoint(checkpoint)
 
-    suspend fun insert(checkpoint: Checkpoint): Long {
-        return checkpointDao.insertCheckpoint(checkpoint)
-    }
+    suspend fun update(checkpoint: Checkpoint) = checkpointDao.updateCheckpoint(checkpoint)
 
-    suspend fun update(checkpoint: Checkpoint) {
-        checkpointDao.updateCheckpoint(checkpoint)
-    }
-
-    suspend fun delete(checkpoint: Checkpoint) {
-        checkpointDao.deleteCheckpoint(checkpoint)
-    }
-
-    suspend fun deleteById(id: Long) {
-        checkpointDao.deleteById(id)
-    }
+    suspend fun delete(checkpoint: Checkpoint) = checkpointDao.deleteCheckpoint(checkpoint)
 }

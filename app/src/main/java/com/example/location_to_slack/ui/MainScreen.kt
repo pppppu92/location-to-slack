@@ -10,13 +10,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -35,26 +33,17 @@ fun MainScreen(viewModel: CheckpointViewModel) {
     val checkpoints by viewModel.checkpoints.collectAsState()
     val activeCount = checkpoints.count { it.isEnabled }
 
-    // 権限状態の保持
-    var hasFineLocationPermission by remember {
-        mutableStateOf(
-            ContextCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        )
-    }
+    fun isGranted(permission: String) =
+        ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
 
+    // 権限状態の保持（通知権限は Android 13 未満では不要）
+    var hasFineLocationPermission by remember {
+        mutableStateOf(isGranted(Manifest.permission.ACCESS_FINE_LOCATION))
+    }
     var hasNotificationPermission by remember {
         mutableStateOf(
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                ContextCompat.checkSelfPermission(
-                    context,
-                    Manifest.permission.POST_NOTIFICATIONS
-                ) == PackageManager.PERMISSION_GRANTED
-            } else {
-                true
-            }
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+                isGranted(Manifest.permission.POST_NOTIFICATIONS)
         )
     }
 
@@ -68,141 +57,128 @@ fun MainScreen(viewModel: CheckpointViewModel) {
         }
     }
 
-    fun checkAndRequestPermissions() {
-        val permissionsToRequest = mutableListOf(
-            Manifest.permission.ACCESS_FINE_LOCATION,
-            Manifest.permission.ACCESS_COARSE_LOCATION
+    fun requestPermissions() {
+        permissionLauncher.launch(
+            listOfNotNull(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) Manifest.permission.POST_NOTIFICATIONS else null
+            ).toTypedArray()
         )
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
-        }
-        permissionLauncher.launch(permissionsToRequest.toTypedArray())
     }
 
-    Scaffold { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(24.dp),
-            contentAlignment = Alignment.Center
-        ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxWidth()
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp)
+    ) {
+
+        // 権限警告カード
+        AnimatedVisibility(visible = !hasFineLocationPermission || !hasNotificationPermission) {
+            Card(
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.errorContainer
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp)
             ) {
-
-                // 権限警告カード
-                AnimatedVisibility(visible = !hasFineLocationPermission || !hasNotificationPermission) {
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.errorContainer
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 32.dp)
-                    ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Warning,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.error
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "権限の許可が必要です",
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "位置情報と通知権限を許可してください（バックグラウンド通知およびジオフェンス検知に使用します）。",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            Button(
-                                onClick = { checkAndRequestPermissions() },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.error
-                                )
-                            ) {
-                                Text("権限を許可する")
-                            }
-                        }
-                    }
-                }
-
-                // 状態表示インジケーター（大きなサークル）
-                Box(
-                    modifier = Modifier
-                        .size(180.dp)
-                        .background(
-                            color = if (isRunning) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                            shape = CircleShape
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = if (isRunning) "動作中" else "停止中",
-                            fontSize = 28.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = if (isRunning) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
                         )
-                        if (isRunning) {
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Text(
-                                text = "${activeCount}件の地点を監視中",
-                                fontSize = 13.sp,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "権限の許可が必要です",
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "位置情報と通知権限を許可してください（バックグラウンド通知およびジオフェンス検知に使用します）。",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Button(
+                        onClick = { requestPermissions() },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error
+                        )
+                    ) {
+                        Text("権限を許可する")
                     }
                 }
-
-                Spacer(modifier = Modifier.height(48.dp))
-
-                // ON/OFF切り替えボタン
-                Button(
-                    onClick = {
-                        if (!hasFineLocationPermission) {
-                            checkAndRequestPermissions()
-                        } else {
-                            viewModel.toggleMonitoringService()
-                        }
-                    },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isRunning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth(0.7f)
-                        .height(56.dp)
-                ) {
-                    Text(
-                        text = if (isRunning) "監視を停止する" else "監視を開始する",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = if (isRunning) {
-                        "設定されたチェックポイント（100m圏内）に入るとSlackに自動通知されます。"
-                    } else {
-                        "監視を開始するとバックグラウンドで進入検知を行います。"
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = 16.dp)
-                )
             }
         }
+
+        // 状態表示インジケーター（大きなサークル）
+        Box(
+            modifier = Modifier
+                .size(180.dp)
+                .background(
+                    color = if (isRunning) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                    shape = CircleShape
+                ),
+            contentAlignment = Alignment.Center
+        ) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text(
+                    text = if (isRunning) "動作中" else "停止中",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isRunning) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                if (isRunning) {
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Text(
+                        text = "${activeCount}件の地点を監視中",
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(48.dp))
+
+        // ON/OFF切り替えボタン
+        Button(
+            onClick = {
+                if (hasFineLocationPermission) viewModel.toggleMonitoringService() else requestPermissions()
+            },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = if (isRunning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+            ),
+            modifier = Modifier
+                .fillMaxWidth(0.7f)
+                .height(56.dp)
+        ) {
+            Text(
+                text = if (isRunning) "監視を停止する" else "監視を開始する",
+                fontSize = 18.sp,
+                fontWeight = FontWeight.SemiBold
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Text(
+            text = if (isRunning) {
+                "設定されたチェックポイントの検知半径内に入るとSlackに自動通知されます。"
+            } else {
+                "監視を開始するとバックグラウンドで進入検知を行います。"
+            },
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 16.dp)
+        )
     }
 }

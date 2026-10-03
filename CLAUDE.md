@@ -49,8 +49,8 @@ https://www.google.com/maps/search/?api=1&query={緯度},{経度}
 
 ### DI・初期化方式
 - **DI フレームワーク無し**: Hilt/Dagger 不使用
-- **手動注入** - MainActivity: AppDatabase.getDatabase() → CheckpointRepository 生成 → CheckpointViewModelFactory へ
-- **Singleton** - SlackNotifier: getInstance(context) で同期化済み singleton パターン
+- **手動注入** - MainActivity: AppDatabase.getDatabase() → CheckpointRepository 生成 → viewModelFactory { initializer { ... } } で CheckpointViewModel へ
+- **Singleton** - SlackNotifier: Kotlin `object`（context 不要）
 
 ### 注意点・Gotchas
 - **PendingIntent フラグ** - FLAG_UPDATE_CURRENT | FLAG_MUTABLE: Geofencing API がインテントの extras を埋め込む必要があるため

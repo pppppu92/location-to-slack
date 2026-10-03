@@ -11,6 +11,8 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -19,7 +21,6 @@ import androidx.navigation.compose.rememberNavController
 import com.example.location_to_slack.data.AppDatabase
 import com.example.location_to_slack.data.CheckpointRepository
 import com.example.location_to_slack.ui.CheckpointViewModel
-import com.example.location_to_slack.ui.CheckpointViewModelFactory
 import com.example.location_to_slack.ui.MainScreen
 import com.example.location_to_slack.ui.SettingsScreen
 import com.example.location_to_slack.ui.theme.LocationtoslackTheme
@@ -27,9 +28,12 @@ import com.example.location_to_slack.ui.theme.LocationtoslackTheme
 class MainActivity : ComponentActivity() {
 
     private val viewModel: CheckpointViewModel by viewModels {
-        val database = AppDatabase.getDatabase(applicationContext)
-        val repository = CheckpointRepository(database.checkpointDao())
-        CheckpointViewModelFactory(application, repository)
+        viewModelFactory {
+            initializer {
+                val dao = AppDatabase.getDatabase(applicationContext).checkpointDao()
+                CheckpointViewModel(application, CheckpointRepository(dao))
+            }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,34 +48,25 @@ class MainActivity : ComponentActivity() {
                 Scaffold(
                     bottomBar = {
                         NavigationBar {
-                            NavigationBarItem(
-                                icon = { Icon(Icons.Default.Home, contentDescription = "メイン") },
-                                label = { Text("メイン") },
-                                selected = currentRoute == "main",
-                                onClick = {
-                                    navController.navigate("main") {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
+                            listOf(
+                                Triple("main", "メイン", Icons.Default.Home),
+                                Triple("settings", "設定", Icons.Default.Settings)
+                            ).forEach { (route, label, icon) ->
+                                NavigationBarItem(
+                                    icon = { Icon(icon, contentDescription = label) },
+                                    label = { Text(label) },
+                                    selected = currentRoute == route,
+                                    onClick = {
+                                        navController.navigate(route) {
+                                            popUpTo(navController.graph.findStartDestination().id) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
                                         }
-                                        launchSingleTop = true
-                                        restoreState = true
                                     }
-                                }
-                            )
-                            NavigationBarItem(
-                                icon = { Icon(Icons.Default.Settings, contentDescription = "設定") },
-                                label = { Text("設定") },
-                                selected = currentRoute == "settings",
-                                onClick = {
-                                    navController.navigate("settings") {
-                                        popUpTo(navController.graph.findStartDestination().id) {
-                                            saveState = true
-                                        }
-                                        launchSingleTop = true
-                                        restoreState = true
-                                    }
-                                }
-                            )
+                                )
+                            }
                         }
                     }
                 ) { innerPadding ->
@@ -80,12 +75,8 @@ class MainActivity : ComponentActivity() {
                         startDestination = "main",
                         modifier = Modifier.padding(innerPadding)
                     ) {
-                        composable("main") {
-                            MainScreen(viewModel = viewModel)
-                        }
-                        composable("settings") {
-                            SettingsScreen(viewModel = viewModel)
-                        }
+                        composable("main") { MainScreen(viewModel = viewModel) }
+                        composable("settings") { SettingsScreen(viewModel = viewModel) }
                     }
                 }
             }
