@@ -33,9 +33,10 @@ https://www.google.com/maps/search/?api=1&query={緯度},{経度}
 タイムスタンプは含まれない。JSONペイロードは `{"text": "..."}` の形式のみ。
 
 ### 連続通知防止
-- **isInsideAreaMap**: チェックポイントID ごとのエリア内/外フラグ。すでにエリア内かつ最後の通知から 30 分未満 (COOLDOWN_MILLIS) なら送信スキップ
-- **lastNotifiedTimeMap**: チェックポイントID ごとの最後の通知時刻を記録。最後の通知から 5 分未満 (MIN_RENOTIFICATION_INTERVAL_MILLIS) なら過剰通知を防ぐ
-- **メモリのみ**: 両マップはプロセス終了時にリセット
+- **State Persistence**: チェックポイントID ごとのエリア内/外フラグと最後の通知時刻を SharedPreferences ("notification_state") に永続化。プロセス終了後も保持
+- **isInsideArea キー**: "inside_{checkpointId}" (Boolean). すでにエリア内かつ最後の通知から 30 分未満 (COOLDOWN_MILLIS) なら送信スキップ
+- **lastNotifiedTime キー**: "last_{checkpointId}" (Long). 最後の通知から 5 分未満 (MIN_RENOTIFICATION_INTERVAL_MILLIS) なら過剰通知を防ぐ
+- **shouldNotify 関数**: skip ロジックを集約（内部関数）
 
 ### Slack Webhook URL
 - `local.properties` の `SLACK_WEBHOOK_URL` を build.gradle.kts で読み込み
@@ -50,7 +51,7 @@ https://www.google.com/maps/search/?api=1&query={緯度},{経度}
 ### DI・初期化方式
 - **DI フレームワーク無し**: Hilt/Dagger 不使用
 - **手動注入** - MainActivity: AppDatabase.getDatabase() → CheckpointRepository 生成 → viewModelFactory { initializer { ... } } で CheckpointViewModel へ
-- **Singleton** - SlackNotifier: Kotlin `object`（context 不要）
+- **Singleton** - SlackNotifier: Kotlin `object`。呼び出し時に Context パラメータで SharedPreferences にアクセス
 
 ### 注意点・Gotchas
 - **PendingIntent フラグ** - FLAG_UPDATE_CURRENT | FLAG_MUTABLE: Geofencing API がインテントの extras を埋め込む必要があるため

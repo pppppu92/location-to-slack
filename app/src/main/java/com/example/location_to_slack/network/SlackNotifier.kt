@@ -1,5 +1,6 @@
 package com.example.location_to_slack.network
 
+import android.content.Context
 import android.util.Log
 import com.example.location_to_slack.BuildConfig
 import com.example.location_to_slack.data.Checkpoint
@@ -10,7 +11,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
-import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.TimeUnit
 
 /**
@@ -19,6 +19,11 @@ import java.util.concurrent.TimeUnit
 object SlackNotifier {
 
     private const val TAG = "SlackNotifier"
+
+    // SharedPreferences 設定
+    private const val PREFS_NAME = "notification_state"
+    private const val PREF_KEY_LAST_NOTIFIED_PREFIX = "last_"
+    private const val PREF_KEY_INSIDE_PREFIX = "inside_"
 
     // 同一エリア滞在中の再通知クールダウン時間 (30分)
     private const val COOLDOWN_MILLIS = 30 * 60 * 1000L
@@ -30,12 +35,6 @@ object SlackNotifier {
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(15, TimeUnit.SECONDS)
         .build()
-
-    // チェックポイントIDごとの最終通知時刻 (ミリ秒)
-    private val lastNotifiedTimeMap = ConcurrentHashMap<Long, Long>()
-
-    // チェックポイントIDごとの現在エリア滞在フラグ
-    private val isInsideAreaMap = ConcurrentHashMap<Long, Boolean>()
 
     /**
      * 【フォーマット】
@@ -49,21 +48,16 @@ object SlackNotifier {
     /**
      * チェックポイントに進入した際の通知処理
      */
-    suspend fun notifyCheckpointEntered(checkpoint: Checkpoint) = withContext(Dispatchers.IO) {
+    suspend fun notifyCheckpointEntered(context: Context, checkpoint: Checkpoint) = withContext(Dispatchers.IO) {
         val checkpointId = checkpoint.id
         val currentTime = System.currentTimeMillis()
-        val elapsed = currentTime - (lastNotifiedTimeMap[checkpointId] ?: 0L)
+        val lastNotifiedTime = getLastNotifiedTime(context, checkpointId)
+        val elapsed = currentTime - lastNotifiedTime
+        val isInside = isInsideArea(context, checkpointId)
 
-        // 連続送信防止制御:
-        // 1. すでにエリア内にいて通知済み、かつクールダウン時間（30分）未満の場合は送信しない
-        if (isInsideAreaMap[checkpointId] == true && elapsed < COOLDOWN_MILLIS) {
-            Log.d(TAG, "Skip Slack notification for [${checkpoint.name}]: already inside and in cooldown.")
-            return@withContext
-        }
-
-        // 2. エリアから一度出た場合でも、前回の通知から最低クールダウン（5分）未満なら過剰通知を防ぐ
-        if (elapsed < MIN_RENOTIFICATION_INTERVAL_MILLIS) {
-            Log.d(TAG, "Skip Slack notification for [${checkpoint.name}]: too frequent.")
+        // 連続送信防止制御
+        if (!shouldNotify(isInside, elapsed)) {
+            Log.d(TAG, "Skip Slack notification for [${checkpoint.name}]: duplicate or cooldown.")
             return@withContext
         }
 
@@ -80,17 +74,55 @@ object SlackNotifier {
         }
 
         if (sent) {
-            lastNotifiedTimeMap[checkpointId] = currentTime
-            isInsideAreaMap[checkpointId] = true
+            setLastNotifiedTime(context, checkpointId, currentTime)
+            setInsideArea(context, checkpointId, true)
         }
     }
 
     /**
      * チェックポイントから退出したときの処理（エリア内外状態を更新）
      */
-    fun onCheckpointExited(checkpoint: Checkpoint) {
+    fun onCheckpointExited(context: Context, checkpoint: Checkpoint) {
         Log.d(TAG, "Exited area for [${checkpoint.name}]. Resetting inside flag.")
-        isInsideAreaMap[checkpoint.id] = false
+        setInsideArea(context, checkpoint.id, false)
+    }
+
+    /**
+     * 通知を送信すべきかどうかを判定する
+     * @param isInside 現在エリア内かどうか
+     * @param elapsedMillis 最後の通知からの経過時間（ミリ秒）
+     * @return 通知を送信すべき場合は true
+     */
+    internal fun shouldNotify(isInside: Boolean, elapsedMillis: Long): Boolean {
+        // すでにエリア内にいて通知済み、かつクールダウン時間（30分）未満の場合は送信しない
+        if (isInside && elapsedMillis < COOLDOWN_MILLIS) {
+            return false
+        }
+        // エリアから一度出た場合でも、前回の通知から最低クールダウン（5分）未満なら過剰通知を防ぐ
+        if (elapsedMillis < MIN_RENOTIFICATION_INTERVAL_MILLIS) {
+            return false
+        }
+        return true
+    }
+
+    private fun getLastNotifiedTime(context: Context, checkpointId: Long): Long {
+        val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getLong("$PREF_KEY_LAST_NOTIFIED_PREFIX$checkpointId", 0L)
+    }
+
+    private fun setLastNotifiedTime(context: Context, checkpointId: Long, time: Long) {
+        val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putLong("$PREF_KEY_LAST_NOTIFIED_PREFIX$checkpointId", time).apply()
+    }
+
+    private fun isInsideArea(context: Context, checkpointId: Long): Boolean {
+        val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        return prefs.getBoolean("$PREF_KEY_INSIDE_PREFIX$checkpointId", false)
+    }
+
+    private fun setInsideArea(context: Context, checkpointId: Long, inside: Boolean) {
+        val prefs = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        prefs.edit().putBoolean("$PREF_KEY_INSIDE_PREFIX$checkpointId", inside).apply()
     }
 
     private fun postMessage(webhookUrl: String, text: String): Boolean = try {
