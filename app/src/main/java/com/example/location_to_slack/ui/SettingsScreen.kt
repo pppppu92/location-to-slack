@@ -49,43 +49,38 @@ fun SettingsScreen(viewModel: CheckpointViewModel) {
             }
         }
     ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            if (checkpoints.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "登録されたチェックポイントはありません。\n右下の ＋ ボタンから追加してください。",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+        if (checkpoints.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "登録されたチェックポイントはありません。\n右下の ＋ ボタンから追加してください。",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentPadding = PaddingValues(16.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                items(checkpoints, key = { it.id }) { checkpoint ->
+                    CheckpointCard(
+                        checkpoint = checkpoint,
+                        onToggle = { viewModel.toggleCheckpoint(checkpoint) },
+                        onEdit = {
+                            editingCheckpoint = checkpoint
+                            showDialog = true
+                        },
+                        onDelete = { checkpointToDelete = checkpoint }
                     )
-                }
-            } else {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(checkpoints, key = { it.id }) { checkpoint ->
-                        CheckpointCard(
-                            checkpoint = checkpoint,
-                            onToggle = { viewModel.toggleCheckpoint(checkpoint) },
-                            onEdit = {
-                                editingCheckpoint = checkpoint
-                                showDialog = true
-                            },
-                            onDelete = {
-                                checkpointToDelete = checkpoint
-                            }
-                        )
-                    }
                 }
             }
         }
@@ -93,18 +88,14 @@ fun SettingsScreen(viewModel: CheckpointViewModel) {
 
     // 追加・編集ダイアログ
     if (showDialog) {
+        val editing = editingCheckpoint
         CheckpointDialog(
-            initialCheckpoint = editingCheckpoint,
+            initialCheckpoint = editing,
             onDismiss = { showDialog = false },
             onConfirm = { name, lat, lon, radius ->
-                if (editingCheckpoint != null) {
+                if (editing != null) {
                     viewModel.updateCheckpoint(
-                        editingCheckpoint!!.copy(
-                            name = name,
-                            latitude = lat,
-                            longitude = lon,
-                            radius = radius
-                        )
+                        editing.copy(name = name, latitude = lat, longitude = lon, radius = radius)
                     )
                 } else {
                     viewModel.addCheckpoint(name, lat, lon, radius)
@@ -143,7 +134,7 @@ fun SettingsScreen(viewModel: CheckpointViewModel) {
 }
 
 @Composable
-fun CheckpointCard(
+private fun CheckpointCard(
     checkpoint: Checkpoint,
     onToggle: () -> Unit,
     onEdit: () -> Unit,

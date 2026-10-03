@@ -13,9 +13,6 @@ interface CheckpointDao {
     fun getAllCheckpoints(): Flow<List<Checkpoint>>
 
     @Query("SELECT * FROM checkpoints WHERE isEnabled = 1")
-    fun getActiveCheckpoints(): Flow<List<Checkpoint>>
-
-    @Query("SELECT * FROM checkpoints WHERE isEnabled = 1")
     suspend fun getActiveCheckpointsList(): List<Checkpoint>
 
     @Query("SELECT * FROM checkpoints WHERE id = :id LIMIT 1")
@@ -29,7 +26,4 @@ interface CheckpointDao {
 
     @Delete
     suspend fun deleteCheckpoint(checkpoint: Checkpoint)
-
-    @Query("DELETE FROM checkpoints WHERE id = :id")
-    suspend fun deleteById(id: Long)
 }

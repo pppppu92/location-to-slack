@@ -72,9 +72,9 @@ fun CheckpointDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                if (errorMessage != null) {
+                errorMessage?.let {
                     Text(
-                        text = errorMessage ?: "",
+                        text = it,
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall
                     )
@@ -92,12 +92,17 @@ fun CheckpointDialog(
                         errorMessage = "名前を入力してください"
                         return@Button
                     }
-                    if (lat == null || lat < -90.0 || lat > 90.0) {
+                    if (lat == null || lat !in -90.0..90.0) {
                         errorMessage = "正しい緯度 (-90〜90) を入力してください"
                         return@Button
                     }
-                    if (lon == null || lon < -180.0 || lon > 180.0) {
+                    if (lon == null || lon !in -180.0..180.0) {
                         errorMessage = "正しい経度 (-180〜180) を入力してください"
+                        return@Button
+                    }
+                    // 0 以下の半径は Geofence.Builder が例外を投げる
+                    if (radius <= 0f) {
+                        errorMessage = "検知半径は 0 より大きい値を入力してください"
                         return@Button
                     }
 
