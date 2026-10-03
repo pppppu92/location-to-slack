@@ -46,11 +46,11 @@ class GeofenceBroadcastReceiver : BroadcastReceiver() {
                     when (transitionType) {
                         Geofence.GEOFENCE_TRANSITION_ENTER -> {
                             Log.d(TAG, "Entered checkpoint: ${checkpoint.name}")
-                            SlackNotifier.notifyCheckpointEntered(checkpoint)
+                            SlackNotifier.notifyCheckpointEntered(context, checkpoint)
                         }
                         Geofence.GEOFENCE_TRANSITION_EXIT -> {
                             Log.d(TAG, "Exited checkpoint: ${checkpoint.name}")
-                            SlackNotifier.onCheckpointExited(checkpoint)
+                            SlackNotifier.onCheckpointExited(context, checkpoint)
                         }
                     }
                 }
