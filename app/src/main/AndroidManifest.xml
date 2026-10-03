@@ -17,6 +17,9 @@
     <!-- 通知権限 (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
+    <!-- ブート完了通知権限 -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -47,6 +50,15 @@
         <receiver
             android:name=".receiver.GeofenceBroadcastReceiver"
             android:exported="false" />
+
+        <!-- ブート完了時にジオフェンス監視を再開する BroadcastReceiver -->
+        <receiver
+            android:name=".receiver.BootReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

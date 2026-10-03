@@ -14,6 +14,7 @@ import com.example.location_to_slack.MainActivity
 import com.example.location_to_slack.data.AppDatabase
 import com.example.location_to_slack.data.CheckpointRepository
 import com.example.location_to_slack.geofence.GeofenceManager
+import com.example.location_to_slack.util.MonitoringPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -50,6 +51,7 @@ class LocationForegroundService : Service() {
 
     private fun startMonitoring() {
         _isRunning.value = true
+        MonitoringPreferences.setMonitoringEnabled(this, true)
         startForeground(NOTIFICATION_ID, createNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION)
         updateGeofences()
     }
@@ -68,6 +70,7 @@ class LocationForegroundService : Service() {
 
     private fun stopMonitoring() {
         _isRunning.value = false
+        MonitoringPreferences.setMonitoringEnabled(this, false)
         geofenceManager.removeGeofences()
         stopForeground(STOP_FOREGROUND_REMOVE)
         stopSelf()
