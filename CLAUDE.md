@@ -56,3 +56,7 @@ https://www.google.com/maps/search/?api=1&query={緯度},{経度}
 - **PendingIntent フラグ** - FLAG_UPDATE_CURRENT | FLAG_MUTABLE: Geofencing API がインテントの extras を埋め込む必要があるため
 - **再起動後のジオフェンス** - BootReceiver 無し：再起動後はサービス再起動まで登録されない
 - **RoomDatabase** - fallbackToDestructiveMigration() でスキーマ変更により登録済みチェックポイントが削除される
+
+## Git 運用
+- **Issue 着手時のコミット先**: 現在の HEAD から `issue-{番号}-{英語の要約}` ブランチを新規に切ってコミット・push し、ドラフト PR を作成する。既存の worktree ブランチ（`worktree-*`）には直接コミットしない。この手順はユーザーへの確認なしで進めてよい。
+- **未マージのコミットを含む場合**: 分岐元に `origin/main` へ未マージのコミットがあっても同じ手順で進め、PR 本文にその旨を 1 行書く。
