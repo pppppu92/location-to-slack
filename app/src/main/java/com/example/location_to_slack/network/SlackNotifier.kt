@@ -38,6 +38,15 @@ object SlackNotifier {
     private val isInsideAreaMap = ConcurrentHashMap<Long, Boolean>()
 
     /**
+     * 【フォーマット】
+     * (チェックポイント名)を通過しました。
+     * https://www.google.com/maps/search/?api=1&query=(指定した緯度),(指定した経度)
+     */
+    internal fun buildMessageText(checkpoint: Checkpoint): String =
+        "${checkpoint.name}を通過しました。\n" +
+            "https://www.google.com/maps/search/?api=1&query=${checkpoint.latitude},${checkpoint.longitude}"
+
+    /**
      * チェックポイントに進入した際の通知処理
      */
     suspend fun notifyCheckpointEntered(checkpoint: Checkpoint) = withContext(Dispatchers.IO) {
@@ -58,11 +67,7 @@ object SlackNotifier {
             return@withContext
         }
 
-        // 【フォーマット】
-        // (チェックポイント名)を通過しました。
-        // https://www.google.com/maps/search/?api=1&query=(指定した緯度),(指定した経度)
-        val messageText = "${checkpoint.name}を通過しました。\n" +
-            "https://www.google.com/maps/search/?api=1&query=${checkpoint.latitude},${checkpoint.longitude}"
+        val messageText = buildMessageText(checkpoint)
 
         val webhookUrl = BuildConfig.SLACK_WEBHOOK_URL
         val sent = if (webhookUrl.isBlank() || webhookUrl.contains("YOUR/WEBHOOK/URL")) {
