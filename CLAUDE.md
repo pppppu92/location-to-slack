@@ -55,7 +55,7 @@ https://www.google.com/maps/search/?api=1&query={緯度},{経度}
 ### 注意点・Gotchas
 - **PendingIntent フラグ** - FLAG_UPDATE_CURRENT | FLAG_MUTABLE: Geofencing API がインテントの extras を埋め込む必要があるため
 - **再起動後のジオフェンス** - BootReceiver 無し：再起動後はサービス再起動まで登録されない
-- **RoomDatabase** - fallbackToDestructiveMigration() でスキーマ変更により登録済みチェックポイントが削除される
+- **RoomDatabase** - exportSchema = true。スキーマ JSON は `app/schemas/` に出力し Git 管理する。version を上げるときは Migration（または AutoMigration）を必ず追加する（無いと起動時に例外）
 
 ## Git 運用
 - **Issue 着手時のコミット先**: `origin/main` から `issue-{番号}-{英語の要約}` ブランチを新規に切ってコミット・push し、`main` 向けのドラフト PR を作成する。既存の worktree ブランチ（`worktree-*`）には直接コミットしない。この手順はユーザーへの確認なしで進めてよい。
