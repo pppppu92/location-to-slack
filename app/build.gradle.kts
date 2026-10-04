@@ -1,19 +1,8 @@
-import java.util.Properties
-
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.ksp)
 }
-
-// local.properties から Slack Webhook URL を読み込む
-val localProperties = Properties().apply {
-    val localPropertiesFile = rootProject.file("local.properties")
-    if (localPropertiesFile.exists()) {
-        localPropertiesFile.inputStream().use { load(it) }
-    }
-}
-val slackWebhookUrl: String = localProperties.getProperty("SLACK_WEBHOOK_URL") ?: ""
 
 android {
     namespace = "com.example.location_to_slack"
@@ -30,9 +19,6 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-
-        // BuildConfig 経由で参照可能にする
-        buildConfigField("String", "SLACK_WEBHOOK_URL", "\"$slackWebhookUrl\"")
     }
 
     buildTypes {
@@ -53,7 +39,6 @@ android {
     }
     buildFeatures {
         compose = true
-        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.1"

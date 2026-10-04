@@ -6,6 +6,8 @@
    See https://developer.android.com/about/versions/12/backup-restore
 -->
 <full-backup-content>
+    <!-- Keystore の鍵は端末外へ移せず復号できないため、暗号化した Webhook URL は対象外にする -->
+    <exclude domain="sharedpref" path="webhook_prefs.xml"/>
     <!--
    <include domain="sharedpref" path="."/>
    <exclude domain="sharedpref" path="device.xml"/>

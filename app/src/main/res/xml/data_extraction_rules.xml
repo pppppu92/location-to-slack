@@ -4,12 +4,17 @@
    for details.
 -->
 <data-extraction-rules>
+    <!-- Keystore の鍵は端末外へ移せず復号できないため、暗号化した Webhook URL は対象外にする -->
     <cloud-backup>
+        <exclude domain="sharedpref" path="webhook_prefs.xml"/>
         <!-- TODO: Use <include> and <exclude> to control what is backed up.
         <include .../>
         <exclude .../>
         -->
     </cloud-backup>
+    <device-transfer>
+        <exclude domain="sharedpref" path="webhook_prefs.xml"/>
+    </device-transfer>
     <!--
     <device-transfer>
         <include .../>

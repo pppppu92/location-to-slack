@@ -1,8 +1,9 @@
 package com.example.location_to_slack.network
 
+import android.content.Context
 import android.util.Log
-import com.example.location_to_slack.BuildConfig
 import com.example.location_to_slack.data.Checkpoint
+import com.example.location_to_slack.util.WebhookUrlStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -49,7 +50,7 @@ object SlackNotifier {
     /**
      * チェックポイントに進入した際の通知処理
      */
-    suspend fun notifyCheckpointEntered(checkpoint: Checkpoint) = withContext(Dispatchers.IO) {
+    suspend fun notifyCheckpointEntered(context: Context, checkpoint: Checkpoint) = withContext(Dispatchers.IO) {
         val checkpointId = checkpoint.id
         val currentTime = System.currentTimeMillis()
         val elapsed = currentTime - (lastNotifiedTimeMap[checkpointId] ?: 0L)
@@ -69,10 +70,10 @@ object SlackNotifier {
 
         val messageText = buildMessageText(checkpoint)
 
-        val webhookUrl = BuildConfig.SLACK_WEBHOOK_URL
-        val sent = if (webhookUrl.isBlank() || webhookUrl.contains("YOUR/WEBHOOK/URL")) {
+        val webhookUrl = WebhookUrlStore.load(context)
+        val sent = if (webhookUrl.isBlank()) {
             // 未設定時は開発・テスト用にログ出力のみ行い、送信済みとして扱う
-            Log.w(TAG, "Slack Webhook URL is not configured. Please set SLACK_WEBHOOK_URL in local.properties.")
+            Log.w(TAG, "Slack Webhook URL is not configured. Please set it on the settings screen.")
             Log.i(TAG, "[Preview Slack Message]\n$messageText")
             true
         } else {

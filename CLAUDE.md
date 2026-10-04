@@ -38,8 +38,8 @@ https://www.google.com/maps/search/?api=1&query={緯度},{経度}
 - **メモリのみ**: 両マップはプロセス終了時にリセット
 
 ### Slack Webhook URL
-- `local.properties` の `SLACK_WEBHOOK_URL` を build.gradle.kts で読み込み
-- BuildConfig.SLACK_WEBHOOK_URL 経由で SlackNotifier が参照
+- 設定画面（SettingsScreen 右上の設定アイコン）のダイアログで入力
+- WebhookUrlStore が Android Keystore の AES/GCM 鍵で暗号化し SharedPreferences ("webhook_prefs") に保存、SlackNotifier が送信時に復号して参照
 - 未設定時はログ出力のみ
 
 ### パーミッション
