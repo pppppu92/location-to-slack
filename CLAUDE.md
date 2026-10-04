@@ -44,7 +44,7 @@ https://www.google.com/maps/search/?api=1&query={緯度},{経度}
 
 ### パーミッション
 - **Runtime 要求**: MainScreen で ACCESS_FINE_LOCATION, ACCESS_COARSE_LOCATION, POST_NOTIFICATIONS (Android 13+) を rememberLauncherForActivityResult で要求
-- **ACCESS_BACKGROUND_LOCATION**: AndroidManifest で宣言済みだが、コードでは要求しない（ユーザーが手動で「常に許可」を設定する必要がある）
+- **ACCESS_BACKGROUND_LOCATION**: フォアグラウンドの位置情報権限の取得後に MainScreen で別途要求する（Android 10 はダイアログ、Android 11 以降は警告カードのボタンからアプリの設定画面へ誘導）。未許可の間は警告カードを表示する
 - **その他の権限**: FOREGROUND_SERVICE, FOREGROUND_SERVICE_LOCATION は AndroidManifest で宣言済み（FOREGROUND_SERVICE_LOCATION は Android 14 (API 34)+ 向け）
 
 ### DI・初期化方式
