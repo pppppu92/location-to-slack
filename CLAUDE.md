@@ -12,6 +12,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `.\gradlew.bat connectedDebugAndroidTest` - インストルメンテーションテスト（端末必須）
 - `.\gradlew.bat lintDebug` - lint 実行
 
+### プロジェクトパスに非 ASCII 文字がある場合
+`...\Documents\開発\android\location-to-slack` のようなパスでは、AGP のパスチェック（`Your project path contains non-ASCII characters`）でビルドが止まる。`-Pandroid.overridePathCheck=true` を付けてもユニットテストが `ClassNotFoundException` で失敗するため使わない。
+
+推奨はリポジトリを ASCII のみのパスへ移動すること。移動しない場合は、`subst` で非 ASCII の親フォルダーに ASCII のドライブ名を一時的に割り当て、そのドライブ経由で実行する（PowerShell。`X:` は空いているドライブ名、パスは環境に合わせる）:
+```powershell
+subst X: "C:\Users\<ユーザー名>\Documents\開発"
+X:\android\location-to-slack\gradlew.bat -p X:\android\location-to-slack testDebugUnitTest
+subst X: /D
+```
+上記コマンド一覧の他のタスク（`assembleDebug`, `lintDebug` など）も同じ形で実行する。
+
 ## アーキテクチャ概要
 
 ### 全体フロー
