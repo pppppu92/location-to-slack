@@ -3,7 +3,9 @@ package com.example.location_to_slack
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Home
@@ -38,6 +40,8 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // targetSdk 35 では edge-to-edge が強制されるため、全 API レベルで挙動を揃える
+        enableEdgeToEdge()
 
         setContent {
             LocationtoslackTheme {
@@ -73,7 +77,10 @@ class MainActivity : ComponentActivity() {
                     NavHost(
                         navController = navController,
                         startDestination = "main",
-                        modifier = Modifier.padding(innerPadding)
+                        // 内側の Scaffold（設定画面）がシステムバーの余白を二重に取らないようにする
+                        modifier = Modifier
+                            .padding(innerPadding)
+                            .consumeWindowInsets(innerPadding)
                     ) {
                         composable("main") { MainScreen(viewModel = viewModel) }
                         composable("settings") { SettingsScreen(viewModel = viewModel) }
