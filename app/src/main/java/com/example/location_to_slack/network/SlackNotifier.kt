@@ -1,6 +1,13 @@
 package com.example.location_to_slack.network
 
+import android.content.Context
 import android.util.Log
+import androidx.work.Constraints
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequest
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
+import androidx.work.workDataOf
 import com.example.location_to_slack.BuildConfig
 import com.example.location_to_slack.data.Checkpoint
 import kotlinx.coroutines.Dispatchers
@@ -49,7 +56,7 @@ object SlackNotifier {
     /**
      * チェックポイントに進入した際の通知処理
      */
-    suspend fun notifyCheckpointEntered(checkpoint: Checkpoint) = withContext(Dispatchers.IO) {
+    suspend fun notifyCheckpointEntered(context: Context, checkpoint: Checkpoint) = withContext(Dispatchers.IO) {
         val checkpointId = checkpoint.id
         val currentTime = System.currentTimeMillis()
         val elapsed = currentTime - (lastNotifiedTimeMap[checkpointId] ?: 0L)
@@ -79,11 +86,22 @@ object SlackNotifier {
             postMessage(webhookUrl, messageText)
         }
 
-        if (sent) {
-            lastNotifiedTimeMap[checkpointId] = currentTime
-            isInsideAreaMap[checkpointId] = true
+        if (!sent) {
+            // 送信失敗時はネットワーク接続を条件に WorkManager で再送する
+            Log.w(TAG, "Enqueue Slack notification retry for [${checkpoint.name}].")
+            WorkManager.getInstance(context).enqueue(buildRetryRequest(messageText))
         }
+
+        // 再送を予約した場合も通知済みとして扱い、重複送信を防ぐ
+        lastNotifiedTimeMap[checkpointId] = currentTime
+        isInsideAreaMap[checkpointId] = true
     }
+
+    internal fun buildRetryRequest(text: String): OneTimeWorkRequest =
+        OneTimeWorkRequestBuilder<SlackRetryWorker>()
+            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+            .setInputData(workDataOf(SlackRetryWorker.KEY_TEXT to text))
+            .build()
 
     /**
      * チェックポイントから退出したときの処理（エリア内外状態を更新）
@@ -93,7 +111,7 @@ object SlackNotifier {
         isInsideAreaMap[checkpoint.id] = false
     }
 
-    private fun postMessage(webhookUrl: String, text: String): Boolean = try {
+    internal fun postMessage(webhookUrl: String, text: String): Boolean = try {
         val request = Request.Builder()
             .url(webhookUrl)
             .post(
