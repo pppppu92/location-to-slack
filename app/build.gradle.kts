@@ -88,6 +88,9 @@ dependencies {
     // OkHttp (Slack Webhook POST)
     implementation(libs.okhttp)
 
+    // WorkManager (Slack 再送)
+    implementation(libs.androidx.work.runtime.ktx)
+
     // Coroutines
     implementation(libs.kotlinx.coroutines.android)
 
