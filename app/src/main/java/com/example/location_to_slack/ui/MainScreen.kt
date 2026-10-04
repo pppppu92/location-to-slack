@@ -30,6 +30,7 @@ import androidx.core.content.ContextCompat
 fun MainScreen(viewModel: CheckpointViewModel) {
     val context = LocalContext.current
     val isRunning by viewModel.isServiceRunning.collectAsState()
+    val geofenceError by viewModel.geofenceError.collectAsState()
     val checkpoints by viewModel.checkpoints.collectAsState()
     val activeCount = checkpoints.count { it.isEnabled }
 
@@ -123,24 +124,38 @@ fun MainScreen(viewModel: CheckpointViewModel) {
             modifier = Modifier
                 .size(180.dp)
                 .background(
-                    color = if (isRunning) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                    color = when {
+                        !isRunning -> MaterialTheme.colorScheme.surfaceVariant
+                        geofenceError != null -> MaterialTheme.colorScheme.errorContainer
+                        else -> MaterialTheme.colorScheme.primaryContainer
+                    },
                     shape = CircleShape
                 ),
             contentAlignment = Alignment.Center
         ) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = if (isRunning) "動作中" else "停止中",
+                    text = when {
+                        !isRunning -> "停止中"
+                        geofenceError != null -> "監視エラー"
+                        else -> "動作中"
+                    },
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Bold,
-                    color = if (isRunning) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = when {
+                        !isRunning -> MaterialTheme.colorScheme.onSurfaceVariant
+                        geofenceError != null -> MaterialTheme.colorScheme.onErrorContainer
+                        else -> MaterialTheme.colorScheme.onPrimaryContainer
+                    }
                 )
                 if (isRunning) {
                     Spacer(modifier = Modifier.height(6.dp))
                     Text(
-                        text = "${activeCount}件の地点を監視中",
+                        text = geofenceError ?: "${activeCount}件の地点を監視中",
                         fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.primary
+                        textAlign = TextAlign.Center,
+                        color = if (geofenceError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 12.dp)
                     )
                 }
             }

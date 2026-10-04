@@ -31,6 +31,9 @@ class CheckpointViewModel(
     // 監視サービスが起動中かどうかの状態
     val isServiceRunning: StateFlow<Boolean> = LocationForegroundService.isRunning
 
+    // 直近のジオフェンス登録エラー（なければ null）
+    val geofenceError: StateFlow<String?> = LocationForegroundService.geofenceError
+
     /**
      * 監視サービス (フォアグラウンドサービス) の開始 / 停止を切り替える
      */

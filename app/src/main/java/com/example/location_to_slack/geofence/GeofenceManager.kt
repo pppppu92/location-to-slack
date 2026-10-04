@@ -7,7 +7,9 @@ import android.content.Intent
 import android.util.Log
 import com.example.location_to_slack.data.Checkpoint
 import com.example.location_to_slack.receiver.GeofenceBroadcastReceiver
+import com.google.android.gms.common.api.ApiException
 import com.google.android.gms.location.Geofence
+import com.google.android.gms.location.GeofenceStatusCodes
 import com.google.android.gms.location.GeofencingClient
 import com.google.android.gms.location.GeofencingRequest
 import com.google.android.gms.location.LocationServices
@@ -31,12 +33,14 @@ class GeofenceManager(private val context: Context) {
 
     /**
      * チェックポイントリストからジオフェンスを登録する
+     * 結果は onResult に通知する（成功時は null、失敗時は画面表示用のエラーメッセージ）
      */
     @SuppressLint("MissingPermission")
-    fun registerGeofences(checkpoints: List<Checkpoint>) {
+    fun registerGeofences(checkpoints: List<Checkpoint>, onResult: (String?) -> Unit = {}) {
         if (checkpoints.isEmpty()) {
             Log.d(TAG, "No checkpoints to register.")
             removeGeofences()
+            onResult(null)
             return
         }
 
@@ -59,8 +63,14 @@ class GeofenceManager(private val context: Context) {
         // 既存のジオフェンスをクリアしてから新しく登録
         geofencingClient.removeGeofences(geofencePendingIntent).addOnCompleteListener {
             geofencingClient.addGeofences(request, geofencePendingIntent)
-                .addOnSuccessListener { Log.d(TAG, "Successfully registered ${geofenceList.size} geofences.") }
-                .addOnFailureListener { e -> Log.e(TAG, "Failed to register geofences", e) }
+                .addOnSuccessListener {
+                    Log.d(TAG, "Successfully registered ${geofenceList.size} geofences.")
+                    onResult(null)
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "Failed to register geofences", e)
+                    onResult(errorMessage((e as? ApiException)?.statusCode))
+                }
         }
     }
 
@@ -74,5 +84,15 @@ class GeofenceManager(private val context: Context) {
 
     companion object {
         private const val TAG = "GeofenceManager"
+
+        /**
+         * 登録失敗のステータスコードを画面表示用のメッセージに変換する
+         */
+        internal fun errorMessage(statusCode: Int?): String = when (statusCode) {
+            GeofenceStatusCodes.GEOFENCE_NOT_AVAILABLE -> "位置情報サービスが無効のため監視できません"
+            GeofenceStatusCodes.GEOFENCE_TOO_MANY_GEOFENCES -> "チェックポイントが上限を超えているため監視できません"
+            GeofenceStatusCodes.GEOFENCE_INSUFFICIENT_LOCATION_PERMISSION -> "位置情報の権限がないため監視できません"
+            else -> "ジオフェンスの登録に失敗しました"
+        }
     }
 }

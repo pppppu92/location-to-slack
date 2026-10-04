@@ -61,15 +61,17 @@ class LocationForegroundService : Service() {
             try {
                 val activeCheckpoints = repository.getActiveCheckpointsList()
                 Log.d(TAG, "Registering active checkpoints: ${activeCheckpoints.size}")
-                geofenceManager.registerGeofences(activeCheckpoints)
+                geofenceManager.registerGeofences(activeCheckpoints) { error -> _geofenceError.value = error }
             } catch (e: Exception) {
                 Log.e(TAG, "Error updating geofences", e)
+                _geofenceError.value = GeofenceManager.errorMessage(null)
             }
         }
     }
 
     private fun stopMonitoring() {
         _isRunning.value = false
+        _geofenceError.value = null
         MonitoringPreferences.setMonitoringEnabled(this, false)
         geofenceManager.removeGeofences()
         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -125,5 +127,9 @@ class LocationForegroundService : Service() {
 
         private val _isRunning = MutableStateFlow(false)
         val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
+
+        // 直近のジオフェンス登録エラー（成功時・停止時は null）
+        private val _geofenceError = MutableStateFlow<String?>(null)
+        val geofenceError: StateFlow<String?> = _geofenceError.asStateFlow()
     }
 }
