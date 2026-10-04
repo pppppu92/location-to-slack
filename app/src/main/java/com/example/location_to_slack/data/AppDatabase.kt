@@ -7,8 +7,11 @@ import androidx.room.RoomDatabase
 
 /**
  * アプリケーションの Room データベース
+ *
+ * version を上げるときは Migration（または AutoMigration）を追加すること。
+ * スキーマは app/schemas に出力される。
  */
-@Database(entities = [Checkpoint::class], version = 1, exportSchema = false)
+@Database(entities = [Checkpoint::class], version = 1, exportSchema = true)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun checkpointDao(): CheckpointDao
@@ -24,7 +27,6 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "geofence_slack_database"
                 )
-                    .fallbackToDestructiveMigration()
                     .build()
                     .also { INSTANCE = it }
             }

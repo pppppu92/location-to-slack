@@ -15,6 +15,11 @@ val localProperties = Properties().apply {
 }
 val slackWebhookUrl: String = localProperties.getProperty("SLACK_WEBHOOK_URL") ?: ""
 
+// Room のスキーマ JSON を app/schemas に出力し Git 管理する
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 android {
     namespace = "com.example.location_to_slack"
     compileSdk = 35
