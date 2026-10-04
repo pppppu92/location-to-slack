@@ -41,7 +41,7 @@ class LocationForegroundService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when (intent?.action) {
+        when (resolveAction(intent?.action, MonitoringPreferences.isMonitoringEnabled(this))) {
             ACTION_START -> startMonitoring()
             ACTION_STOP -> stopMonitoring()
             ACTION_UPDATE_GEOFENCES -> updateGeofences()
@@ -125,5 +125,13 @@ class LocationForegroundService : Service() {
 
         private val _isRunning = MutableStateFlow(false)
         val isRunning: StateFlow<Boolean> = _isRunning.asStateFlow()
+
+        /**
+         * 実行するアクションを判定する純粋Kotlin関数。
+         * システムによる再起動（START_STICKY）では action が null になるため、監視状態に応じて再開/停止に読み替える
+         */
+        internal fun resolveAction(action: String?, monitoringEnabled: Boolean): String {
+            return action ?: if (monitoringEnabled) ACTION_START else ACTION_STOP
+        }
     }
 }
