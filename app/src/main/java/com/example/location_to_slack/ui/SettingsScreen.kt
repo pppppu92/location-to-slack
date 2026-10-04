@@ -8,14 +8,17 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.example.location_to_slack.data.Checkpoint
+import com.example.location_to_slack.util.WebhookUrlStore
 
 /**
  * 設定画面（チェックポイント管理）
@@ -28,11 +31,17 @@ fun SettingsScreen(viewModel: CheckpointViewModel) {
     var showDialog by remember { mutableStateOf(false) }
     var editingCheckpoint by remember { mutableStateOf<Checkpoint?>(null) }
     var checkpointToDelete by remember { mutableStateOf<Checkpoint?>(null) }
+    var showWebhookDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("チェックポイント設定") },
+                actions = {
+                    IconButton(onClick = { showWebhookDialog = true }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Slack Webhook URL 設定")
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant
                 )
@@ -101,6 +110,40 @@ fun SettingsScreen(viewModel: CheckpointViewModel) {
                     viewModel.addCheckpoint(name, lat, lon, radius)
                 }
                 showDialog = false
+            }
+        )
+    }
+
+    // Slack Webhook URL 設定ダイアログ
+    if (showWebhookDialog) {
+        val context = LocalContext.current
+        var webhookUrl by remember { mutableStateOf(WebhookUrlStore.load(context)) }
+        AlertDialog(
+            onDismissRequest = { showWebhookDialog = false },
+            title = { Text("Slack Webhook URL") },
+            text = {
+                OutlinedTextField(
+                    value = webhookUrl,
+                    onValueChange = { webhookUrl = it },
+                    label = { Text("Webhook URL") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        WebhookUrlStore.save(context, webhookUrl)
+                        showWebhookDialog = false
+                    }
+                ) {
+                    Text("保存")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showWebhookDialog = false }) {
+                    Text("キャンセル")
+                }
             }
         )
     }
